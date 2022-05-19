@@ -7,7 +7,7 @@ from tqdm import tqdm
 import time
 
 from GuessNode import GuessNode
-from wordle_common import compare
+from wordle_common import fast_compare, ANSWERS, WORDS
 
 
 def main(argv):
@@ -40,15 +40,15 @@ def main(argv):
     
     remaining = set()
     if useAnswerList:
-        remaining = buildAnswerList()
+        remaining = ANSWERS
     else:
-        remaining = buildWordList()
+        remaining = WORDS
     
     if checkAllStartingWords:
         """ Check all words """
         pool = multiprocessing.Pool()
-        wordList = buildWordList()
-        results = list(tqdm(pool.map(canSolve, zip(buildWordList(), itertools.repeat(remaining), itertools.repeat(hardMode))), total=len(wordList)))
+        wordList = WORDS
+        results = list(tqdm(pool.map(canSolve, zip(WORDS, itertools.repeat(remaining), itertools.repeat(hardMode))), total=len(wordList)))
     else:
         """ Check single word """
         success, guessNode = canSolve(guess=startingWord, remaining=remaining, hardMode=hardMode)
@@ -64,114 +64,6 @@ def main(argv):
     
     print('Write time: ' + str(end - afterExecution) + 's')
     print('Total time: ' + str(end - start) + 's')
-
-
-def buildWordList():
-    """
-    Builds the full list of valid words
-    Returns:
-        The full list of valid words
-    """
-    with open('words.txt') as file:
-        return set(file.read().splitlines())
-    # return set(['trace', 'track', 'brace', 'trick', 'trims', 'brick', 'brims', 'click', 'flick'])
-
-
-def buildAnswerList():
-    """
-    Builds the full list of answers
-    Returns:
-        The full list of answers
-    """
-    with open('answers.txt') as file:
-        return set(file.read().splitlines())
-    # return set(['trace', 'track', 'brace', 'trick', 'trims', 'brick', 'brims', 'click', 'flick'])
-
-
-def getRemainingWords(words, guess, comparison):
-    """
-    Gets the list of remaining words given the guess and comparison pattern
-
-    Arguments:
-        words: The possible solutions prior to the guess being made
-        guess: The guess being made
-        comparison: The pattern resulting from making the guess
-    Returns:
-        All possible solutions after making the guess
-    """
-    # maps an index to a character indicating the answer has that character at that index
-    matchedLocations = {}
-    
-    # maps an index to a character indicating the answer does NOT have that character at that index
-    excludedLocations = {}
-    
-    # maps a character to the minimum number of times it occurs in the answer
-    counts = {}
-    
-    # the set of characters for which the counts dict has the exact number of occurrences in the answer
-    maxReached = set()
-    
-    index = 0
-    for comp in comparison:
-        char = guess[index]
-        if comp == 'g':
-            matchedLocations[index] = char
-            if char not in (counts.keys()):
-                counts[char] = 1
-            else:
-                counts[char] += 1
-        elif comp == 'y':
-            excludedLocations[index] = char
-            if char not in (counts.keys()):
-                counts[char] = 1
-            else:
-                counts[char] += 1
-        else: ## comp == 'b'
-            maxReached.add(char)
-            excludedLocations[index] = char
-            if char not in (counts.keys()):
-                counts[char] = 0
-
-        index += 1
-
-    
-    ret = set()
-    for word in words:
-        valid = True
-        
-        # Ensure the green letters match
-        for loc, char in matchedLocations.items():
-            if word[loc] != char:
-                valid = False
-                break
-
-        if not valid:
-            continue
-        
-        # Ensure the yellow/black letters don't match
-        for loc, char in excludedLocations.items():
-            if word[loc] == char:
-                valid = False
-                break
-
-        if not valid:
-            continue
-
-        # Ensure the number of letters is correct for each character
-        for char, count in counts.items():
-            cnt = word.count(char)
-            if cnt < count:
-                valid = False
-                break
-
-            if cnt > count and char in maxReached:
-                valid = False
-                break
-
-        if valid:
-            ret.add(word)
-    
-    return ret
 
 
 def getComparisonGroups(guess, remaining):
@@ -194,23 +86,31 @@ def getComparisonGroups(guess, remaining):
         The dict mapping the comparison pattern ("ggbgg", "yyygb", etc.) to the set of words matching that pattern
     """
     comparisonGroups = {}
-    wordSet = set(remaining)
+    # wordSet = set(remaining)
     
-    while len(wordSet) > 0:
-        # pick an arbitrary answer
-        answer = wordSet.pop()
+    for answer in remaining:
+        comparison = fast_compare(answer, guess)
         
-        # compare it to the guess (comparison = "gbbyb")
-        comparison = compare(answer, guess)
+        if comparison not in comparisonGroups.keys():
+            comparisonGroups[comparison] = set([answer])
+        else:
+            comparisonGroups[comparison].add(answer)
+    
+    # while len(wordSet) > 0:
+    #     # pick an arbitrary answer
+    #     answer = wordSet.pop()
         
-        # get the remaining valid words using the guess and comparison
-        words = getRemainingWords(remaining, guess, comparison)
+    #     # fast_compare it to the guess (comparison = "gbbyb")
+    #     comparison = fast_compare(answer, guess)
         
-        # set the value of the comparison to be the list of remaining words ("gbbyb": {"windy", ...})
-        comparisonGroups[comparison] = words
+    #     # get the remaining valid words using the guess and comparison
+    #     words = getRemainingWords(remaining, guess, comparison)
         
-        # remove those words from the wordSet
-        wordSet = wordSet.difference(set(words))
+    #     # set the value of the comparison to be the list of remaining words ("gbbyb": {"windy", ...})
+    #     comparisonGroups[comparison] = words
+        
+    #     # remove those words from the wordSet
+    #     wordSet = wordSet.difference(set(words))
         
         
     # print(json.dumps(comparisonGroups, indent=4, sort_keys=True))
@@ -222,7 +122,7 @@ def canSolve(guess: str,
              remaining: set,
              hardMode: bool,
              guesses: set = set(),
-             allWords: set = buildWordList()):
+             allWords: set = WORDS):
     """
     Checks if the the given guess will always lead to a solved puzzle
     Arguments:
