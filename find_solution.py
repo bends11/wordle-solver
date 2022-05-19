@@ -1,3 +1,4 @@
+import sys, getopt
 import json
 import multiprocessing
 import itertools
@@ -6,42 +7,64 @@ from tqdm import tqdm
 import time
 
 from GuessNode import GuessNode
+from wordle_common import compare
 
 
-
-
-# def makeGuess(answer, remaining, guess):
-#     comparison = compare(answer, guess)
-#     return getRemainingWords(remaining, guess, comparison)
-
-# def solve(answer):
-#     remaining = buildWordList()
-#     numGuesses = 0
-#     guess = ''
-#     guesses = []
-#     while guess != answer and numGuesses < 6:
-#         guess = remaining[0]
-#         guesses.append(guess)
-#         remaining = makeGuess(answer, remaining, guess)
-#         numGuesses += 1
+def main(argv):
+    options = 'hw:au'
+    longOptions = ['hard-mode', 'starting-word=', 'all', 'use-answer-list']
     
-#     if guess == answer:
-#         print('Solved in ' + str(numGuesses) + ' guesses!')
-#         print(guesses)
-#     else:
-#         print('Failed to solve \'' + answer + '\'')
+    startingWord = 'crane'
+    hardMode = False
+    checkAllStartingWords = False
+    useAnswerList = False
+    
+    try:
+        arguments, _ = getopt.getopt(argv, options, longOptions)
+        
+        for arg, value in arguments:
+            if arg in ('-h', '--hard-mode'):
+                hardMode = True
+            elif arg in ('-w', '--starting-word'):
+                startingWord = value
+            elif arg in ('-a', '--all'):
+                checkAllStartingWords = True
+            elif arg in ('-u', '--use-answer-list'):
+                useAnswerList = True
+    except getopt.error as e:
+        print(str(e))
+    
+    results = []
+    
+    start = time.time()
+    
+    remaining = set()
+    if useAnswerList:
+        remaining = buildAnswerList()
+    else:
+        remaining = buildWordList()
+    
+    if checkAllStartingWords:
+        """ Check all words """
+        pool = multiprocessing.Pool()
+        wordList = buildWordList()
+        results = list(tqdm(pool.map(canSolve, zip(buildWordList(), itertools.repeat(remaining), itertools.repeat(hardMode))), total=len(wordList)))
+    else:
+        """ Check single word """
+        success, guessNode = canSolve(guess=startingWord, remaining=remaining, hardMode=hardMode)
+        results = [(success, guessNode)]
+    
+    afterExecution = time.time()
+    
+    print('Execution time: ' + str(afterExecution - start) + 's')
 
-# def findGuess(answer, words, guessNumber):
-#     for guess in words:
-#         remaining = makeGuess(answer, remaining, guess)
-#         if len(remaining) == 1:
-#             print('success')
-#         elif guessNumber == 5:
-#             print('failure')
-#         else:
-#             findGuess(answer, remaining, guessNumber + 1)
-            
-            
+    writeGuessNodeList(results)
+    
+    end = time.time()
+    
+    print('Write time: ' + str(end - afterExecution) + 's')
+    print('Total time: ' + str(end - start) + 's')
+
 
 def buildWordList():
     """
@@ -60,61 +83,9 @@ def buildAnswerList():
     Returns:
         The full list of answers
     """
-    with open('words.txt') as file:
+    with open('answers.txt') as file:
         return set(file.read().splitlines())
     # return set(['trace', 'track', 'brace', 'trick', 'trims', 'brick', 'brims', 'click', 'flick'])
-
-
-def compare(answer, guess):
-    """
-    Compare a guess to an answer and get the comparison pattern.
-    
-    "b": Black; i.e. this character does not exist at this position and the number of this character in the answer has been exceeded
-    "y": Yellow; i.e. this character does not exist at this potision, but the number of this character in the answer has not been exceeded
-    "g": Green; i.e. this character exists at this position in the answer
-    
-    Arguments:
-        answer: The answer to the puzzle
-        guess: The guess being made
-    Returns:
-        The comparison pattern (e.g. ["b", "b", "y", "g", "y"])
-    """
-    if len(answer) != 5 and len(guess) != 5:
-        return []
-
-    ret = []
-    index = 0
-    guessChars = {}
-    answerChars = {}
-
-    for char in guess:
-        if char not in (guessChars.keys()):
-            guessChars[char] = guess.count(char)
-            answerChars[char] = answer.count(char)
-
-        if answer[index] == char:
-            ret.append('g')
-            guessChars[char] -= 1
-            answerChars[char] -= 1
-        else:
-            ret.append('b')
-
-        index += 1
-    
-    for char, count in guessChars.items():
-        if count > 0 and answerChars[char] > 0:
-            remaining = min(count, answerChars[char])
-            index = 0
-            for gChar in guess:
-                if gChar == char and ret[index] == 'b':
-                    ret[index] = 'y'
-                    remaining -= 1
-                    if remaining == 0:
-                        break
-
-                index += 1
-
-    return ret
 
 
 def getRemainingWords(words, guess, comparison):
@@ -248,10 +219,10 @@ def getComparisonGroups(guess, remaining):
 
 
 def canSolve(guess: string,
-             remaining: set = buildWordList(),
+             remaining: set,
+             hardMode: bool,
              guesses: set = set(),
-             allWords: set = buildWordList(),
-             solutionsFound: int = 0):
+             allWords: set = buildWordList()):
     """
     Checks if the the given guess will always lead to a solved puzzle
     Arguments:
@@ -277,7 +248,11 @@ def canSolve(guess: string,
     for pattern, words in comparisonGroups.items():
         
         # Set words available to be guessed. Use variable "allWords" for standard mode, and variable "words" for hard mode
-        availableWords = allWords.difference(guesses)
+        availableWords = set()
+        if hardMode:
+            availableWords = set(words).difference(guesses)
+        else:
+            availableWords = allWords.difference(guesses)
         
         if pattern != 'ggggg':
     
@@ -288,7 +263,11 @@ def canSolve(guess: string,
             
             # Loop over each word remaining from given comparison pattern and check if it always results in a solved puzzle
             for nextGuess in availableWords:
-                success, nextGuessNode = canSolve(nextGuess, words, guesses, allWords, solutionsFound)
+                success, nextGuessNode = canSolve(guess=nextGuess,
+                                                  remaining=words,
+                                                  hardMode=hardMode,
+                                                  guesses=guesses,
+                                                  allWords=allWords)
                 guesses.remove(nextGuess)
                 
                 if success:
@@ -299,10 +278,6 @@ def canSolve(guess: string,
             # If there are no valid guesses after looping over each remaining word, the given guess does not always result in a solved puzzle
             if len(validGuesses) == 0:
                 return False, GuessNode('')
-        
-        else:
-            solutionsFound += 1
-            print(str(solutionsFound) + ' solutions found')
                 
 
     return True, guessNode
@@ -339,24 +314,4 @@ def writeGuessNodeList(results: list):
 
 
 if __name__ == '__main__':
-    start = time.time()
-    
-    """ Check single word """
-    success, guessNode = canSolve('trace')
-    results = [(success, guessNode)]
-
-    """ Check all words """
-    # pool = multiprocessing.Pool()
-    # wordList = buildWordList()
-    # results = list(tqdm(pool.map(canSolve, wordList), total=len(wordList)))
-    
-    afterExecution = time.time()
-    
-    print('Execution time: ' + str(afterExecution - start) + 's')
-
-    writeGuessNodeList(results)
-    
-    end = time.time()
-    
-    print('Write time: ' + str(end - afterExecution) + 's')
-    print('Total time: ' + str(end - start) + 's')
+    main(sys.argv[1:])

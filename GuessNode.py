@@ -1,16 +1,29 @@
 from array import array
+import json
 
 
 class GuessNode:
-    def __init__(self, guess):
-        # string
-        self.guess = guess
+    def __init__(self, value, isJson=False):
+        if (isJson):
+            self.guess = value['guess']
+            self.nextGuesses = {}
+            
+            nextGuessesJson = value['nextGuesses']
+            for pattern, guessNodeList in nextGuessesJson.items():
+                guessNodes = []
+                for node in guessNodeList:
+                    guessNodes.append(GuessNode(node, True))
+                
+                self.nextGuesses[pattern] = guessNodes
+        else:
+            # string
+            self.guess = value
 
-        # dict
-        # <pattern>: [
-        #   GuessNode...
-        # ]
-        self.nextGuesses = {}
+            # dict
+            # <pattern>: [
+            #   GuessNode...
+            # ]
+            self.nextGuesses = {}
     
     def setNextGuesses(self, pattern: str, validGuesses: list):
         self.nextGuesses[pattern] = validGuesses
