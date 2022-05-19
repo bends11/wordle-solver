@@ -24,7 +24,7 @@ def solveWithAnswer(answer):
     guesses = [guess]
     while guess != answer and len(guesses) < 6:
         comparison = compare(answer, guess)
-        guessNode = guessNode.nextGuesses[''.join(comparison)][0]
+        guessNode = guessNode.nextGuesses[comparison][0]
         guess = guessNode.guess
         guesses.append(guess)
     

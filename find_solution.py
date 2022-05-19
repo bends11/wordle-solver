@@ -207,7 +207,7 @@ def getComparisonGroups(guess, remaining):
         words = getRemainingWords(remaining, guess, comparison)
         
         # set the value of the comparison to be the list of remaining words ("gbbyb": {"windy", ...})
-        comparisonGroups[''.join(comparison)] = words
+        comparisonGroups[comparison] = words
         
         # remove those words from the wordSet
         wordSet = wordSet.difference(set(words))
@@ -218,7 +218,7 @@ def getComparisonGroups(guess, remaining):
     return comparisonGroups
 
 
-def canSolve(guess: string,
+def canSolve(guess: str,
              remaining: set,
              hardMode: bool,
              guesses: set = set(),

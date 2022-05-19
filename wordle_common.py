@@ -1,7 +1,7 @@
 
 
 
-def compare(answer, guess):
+def compare(answer, guess) -> str:
     """
     Compare a guess to an answer and get the comparison pattern.
     
@@ -50,4 +50,4 @@ def compare(answer, guess):
 
                 index += 1
 
-    return ret
+    return ''.join(ret)
