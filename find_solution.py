@@ -207,7 +207,7 @@ def getComparisonGroups(guess, remaining):
         words = getRemainingWords(remaining, guess, comparison)
         
         # set the value of the comparison to be the list of remaining words ("gbbyb": {"windy", ...})
-        comparisonGroups[''.join(comparison)] = words
+        comparisonGroups[''.join(comparison)] = set(words)
         
         # remove those words from the wordSet
         wordSet = wordSet.difference(set(words))
@@ -250,7 +250,7 @@ def canSolve(guess: string,
         # Set words available to be guessed. Use variable "allWords" for standard mode, and variable "words" for hard mode
         availableWords = set()
         if hardMode:
-            availableWords = set(words).difference(guesses)
+            availableWords = words.difference(guesses)
         else:
             availableWords = allWords.difference(guesses)
         
