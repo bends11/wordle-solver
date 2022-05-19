@@ -169,8 +169,9 @@ def getRemainingWords(words, guess, comparison):
     
     return ret
 
-
+print('building comparison dict...')
 __COMPARISONS__ = __buildComparisonDict__()
+print('comparison dict built')
 
 WORDS = __buildWordList__()
-ANSWERS = __buildAnswerList__()
+ANSWERS = __buildAnswerList__().intersection(WORDS)

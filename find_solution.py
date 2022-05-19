@@ -147,17 +147,17 @@ def canSolve(guess: str,
     # Loop over each comparison group
     for pattern, words in comparisonGroups.items():
         
-        # Set words available to be guessed. Use variable "allWords" for standard mode, and variable "words" for hard mode
-        availableWords = set()
-        if hardMode:
-            availableWords = words.difference(guesses)
-        else:
-            availableWords = allWords.difference(guesses)
-        
         if pattern != 'ggggg':
     
             if len(guesses) > 5:
                 return False, GuessNode('')
+        
+            # Set words available to be guessed. Use variable "allWords" for standard mode, and variable "words" for hard mode
+            availableWords = set()
+            if hardMode:
+                availableWords = words.difference(guesses)
+            else:
+                availableWords = allWords.difference(guesses)
             
             validGuesses = []
             
