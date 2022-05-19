@@ -16,7 +16,7 @@ def compare(answer, guess) -> str:
         The comparison pattern (e.g. ["b", "b", "y", "g", "y"])
     """
     if len(answer) != 5 and len(guess) != 5:
-        return []
+        return ''
 
     ret = []
     index = 0
