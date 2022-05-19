@@ -135,7 +135,7 @@ def getRemainingWords(words, guess, comparison):
         index += 1
 
     
-    ret = []
+    ret = set()
     for word in words:
         valid = True
         
@@ -169,7 +169,7 @@ def getRemainingWords(words, guess, comparison):
                 break
 
         if valid:
-            ret.append(word)
+            ret.add(word)
     
     return ret
 
@@ -207,7 +207,7 @@ def getComparisonGroups(guess, remaining):
         words = getRemainingWords(remaining, guess, comparison)
         
         # set the value of the comparison to be the list of remaining words ("gbbyb": {"windy", ...})
-        comparisonGroups[''.join(comparison)] = set(words)
+        comparisonGroups[''.join(comparison)] = words
         
         # remove those words from the wordSet
         wordSet = wordSet.difference(set(words))
