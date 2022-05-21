@@ -192,6 +192,7 @@ def canSolve(guess: str,
             # Set words available to be guessed. Use variable "allWords" for standard mode, and variable "words" for hard mode
             if hardMode:
                 new_available_guesses = words
+                new_unavailable_characters = unavailable_characters
             else:
                 new_unavailable_characters, new_available_guesses = get_next_guesses(guess=guess,
                                                                                      comparison=pattern,
