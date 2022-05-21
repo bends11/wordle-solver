@@ -5,6 +5,7 @@ import itertools
 import string
 from tqdm import tqdm
 import time
+import re
 
 from GuessNode import GuessNode
 from wordle_common import fast_compare, ANSWERS, WORDS
@@ -118,11 +119,51 @@ def getComparisonGroups(guess, remaining):
     return comparisonGroups
 
 
+def get_next_guesses(guess: str, comparison: str, unavailable_characters: list, available_guesses: set):
+    available_guesses.discard(guess)
+    nonexisting_chars = set()
+    existing_chars = set()
+    
+    index = 0
+    for char in comparison:
+        guess_char = guess[index]
+        match char:
+            case 'b':
+                unavailable_characters[index].add(guess_char)
+                nonexisting_chars.add(guess_char)
+            case 'y':
+                unavailable_characters[index].add(guess_char)
+                existing_chars.add(guess_char)
+            case 'g':
+                existing_chars.add(guess_char)
+        index += 1
+    
+    nonexisting_chars = nonexisting_chars.difference(existing_chars)
+    
+    pattern_str = ''
+    for char_set in unavailable_characters:
+        char_set.update(nonexisting_chars)
+        pattern_str += '[' + ''.join(char_set) + ']'
+    
+    pattern = re.compile(pattern_str)
+    
+    available_guess_list = list(available_guesses)
+    
+    for word in available_guess_list:
+        if bool(pattern.match(word)):
+            available_guesses.discard(word)
+    
+    return unavailable_characters, available_guesses
+    
+    
+
+
 def canSolve(guess: str,
              remaining: set,
              hardMode: bool,
-             guesses: set = set(),
-             allWords: set = WORDS):
+             guess_number: int = 1,
+             unavailable_characters: list = [set(), set(), set(), set(), set()],
+             available_guesses: set = WORDS):
     """
     Checks if the the given guess will always lead to a solved puzzle
     Arguments:
@@ -135,8 +176,6 @@ def canSolve(guess: str,
         sovleable: True if the guess can be used in a winning strategy for any answer
         guessNode: The GuessNode representing the current guess and all subsequent guesses leading to a solution for every word in the remaining set
     """
-    guesses.add(guess)
-    
     guessNode = GuessNode(guess)
     comparisonGroups = getComparisonGroups(guess, remaining)
     
@@ -145,30 +184,32 @@ def canSolve(guess: str,
         return False, GuessNode('')
     
     # Loop over each comparison group
-    for pattern, words in comparisonGroups.items():
-        
+    for pattern, words in comparisonGroups.items():        
         if pattern != 'ggggg':
-    
-            if len(guesses) > 5:
+            if guess_number > 5:
                 return False, GuessNode('')
-        
+            
             # Set words available to be guessed. Use variable "allWords" for standard mode, and variable "words" for hard mode
-            availableWords = set()
             if hardMode:
-                availableWords = words.difference(guesses)
+                new_available_guesses = words
             else:
-                availableWords = allWords.difference(guesses)
+                new_unavailable_characters, new_available_guesses = get_next_guesses(guess=guess,
+                                                                                     comparison=pattern,
+                                                                                     unavailable_characters=unavailable_characters.copy(),
+                                                                                     available_guesses=available_guesses.copy())
             
             validGuesses = []
             
             # Loop over each word remaining from given comparison pattern and check if it always results in a solved puzzle
-            for nextGuess in availableWords:
+            for nextGuess in new_available_guesses:
+                if nextGuess == guess:
+                    print('error: repeating guess')
                 success, nextGuessNode = canSolve(guess=nextGuess,
                                                   remaining=words,
                                                   hardMode=hardMode,
-                                                  guesses=guesses,
-                                                  allWords=allWords)
-                guesses.remove(nextGuess)
+                                                  guess_number=guess_number + 1,
+                                                  unavailable_characters=new_unavailable_characters.copy(),
+                                                  available_guesses=new_available_guesses.copy())
                 
                 if success:
                     validGuesses.append(nextGuessNode)
