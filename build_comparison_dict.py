@@ -1,13 +1,13 @@
 import imp
-from wordle_common import buildWordList, compare
+from wordle_common import WORDS, compare
 from tqdm import tqdm
 
 
 def main():
     comparison_dict = {}
-    for answer in tqdm(buildWordList()):
+    for answer in tqdm(WORDS):
         guess_dict = {}
-        for guess in buildWordList():
+        for guess in WORDS:
             guess_dict[guess] = compare(answer, guess)
             
         comparison_dict[answer] = guess_dict

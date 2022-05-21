@@ -7,7 +7,7 @@ import json
 def fast_compare(answer, guess) -> str:
     return __COMPARISONS__[answer][guess]
 
-def __compare__(answer, guess) -> str:
+def compare(answer, guess) -> str:
     """
     Compare a guess to an answer and get the comparison pattern.
     
@@ -59,8 +59,11 @@ def __compare__(answer, guess) -> str:
     return ''.join(ret)
 
 def __buildComparisonDict__():
-    with open('comparisons.json') as file:
-        return json.loads(file.read())
+    try:
+        with open('comparisons.json') as file:
+            return json.loads(file.read())
+    except:
+        print('comparisons.json has not been created')
 
 def __buildWordList__():
     """
