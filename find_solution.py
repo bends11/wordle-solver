@@ -144,8 +144,12 @@ def canSolve(guess: str,
     if len(comparisonGroups) == 1 and 'ggggg' not in comparisonGroups.keys() and len(next(iter(comparisonGroups))) >= len(remaining):
         return False, GuessNode('')
     
+    comparison_group_iter = comparisonGroups.items()
+    if len(guesses) == 1:
+        comparison_group_iter = tqdm(comparison_group_iter)
+    
     # Loop over each comparison group
-    for pattern, words in comparisonGroups.items():
+    for pattern, words in comparison_group_iter:
         
         if pattern != 'ggggg':
     
