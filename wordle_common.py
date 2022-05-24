@@ -2,6 +2,7 @@
 
 
 import json
+import time
 
 
 def fast_compare(answer, guess) -> str:
@@ -172,9 +173,12 @@ def getRemainingWords(words, guess, comparison):
     
     return ret
 
+
+start = time.time()
 print('building comparison dict...')
 __COMPARISONS__ = __buildComparisonDict__()
-print('comparison dict built')
+end = time.time()
+print('comparison dict built in ' + str(end - start) + 's')
 
 WORDS = __buildWordList__()
 ANSWERS = __buildAnswerList__().intersection(WORDS)
