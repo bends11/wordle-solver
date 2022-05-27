@@ -126,6 +126,7 @@ def getComparisonGroups(guess, remaining):
 def canSolve(guess: str,
              remaining: set,
              hardMode: bool,
+             already_attempted_hard_mode: bool = False,
              guesses: set = set(),
              allWords: set = WORDS):
     """
@@ -166,40 +167,10 @@ def canSolve(guess: str,
             
             validGuesses = []
             
-            # Loop over each word remaining from given comparison pattern and check if it always results in a solved puzzle
-            for nextGuess in available_answers:
-                success, nextGuessNode = canSolve(guess=nextGuess,
-                                                  remaining=words,
-                                                  hardMode=True,
-                                                  guesses=guesses,
-                                                  allWords=allWords)
-                guesses.remove(nextGuess)
-                
-                if success:
-                    validGuesses.append(nextGuessNode)
-                    guessNode.setNextGuesses(pattern, validGuesses)
-                    break
-            
-            if len(validGuesses) == 0 and not hardMode:
-                for nextGuess in available_answers:
-                    success, nextGuessNode = canSolve(guess=nextGuess,
-                                                    remaining=words,
-                                                    hardMode=False,
-                                                    guesses=guesses,
-                                                    allWords=allWords)
-                    guesses.remove(nextGuess)
-                    
-                    if success:
-                        validGuesses.append(nextGuessNode)
-                        guessNode.setNextGuesses(pattern, validGuesses)
-                        break
-            
             available_non_answers = set()
-            if len(validGuesses) == 0 and not hardMode:
-                available_non_answers = allWords.difference(guesses).difference(available_answers)
-                
+            if not already_attempted_hard_mode:
                 # Loop over each word remaining from given comparison pattern and check if it always results in a solved puzzle
-                for nextGuess in available_non_answers:
+                for nextGuess in available_answers:
                     success, nextGuessNode = canSolve(guess=nextGuess,
                                                     remaining=words,
                                                     hardMode=True,
@@ -211,6 +182,38 @@ def canSolve(guess: str,
                         validGuesses.append(nextGuessNode)
                         guessNode.setNextGuesses(pattern, validGuesses)
                         break
+                
+                if len(validGuesses) == 0 and not hardMode:
+                    available_non_answers = allWords.difference(guesses).difference(available_answers)
+                    
+                    # Loop over each word remaining from given comparison pattern and check if it always results in a solved puzzle
+                    for nextGuess in available_non_answers:
+                        success, nextGuessNode = canSolve(guess=nextGuess,
+                                                        remaining=words,
+                                                        hardMode=True,
+                                                        guesses=guesses,
+                                                        allWords=allWords)
+                        guesses.remove(nextGuess)
+                        
+                        if success:
+                            validGuesses.append(nextGuessNode)
+                            guessNode.setNextGuesses(pattern, validGuesses)
+                            break
+            
+            if len(validGuesses) == 0 and not hardMode:
+                for nextGuess in available_answers:
+                    success, nextGuessNode = canSolve(guess=nextGuess,
+                                                    remaining=words,
+                                                    hardMode=False,
+                                                    already_attempted_hard_mode=not already_attempted_hard_mode,
+                                                    guesses=guesses,
+                                                    allWords=allWords)
+                    guesses.remove(nextGuess)
+                    
+                    if success:
+                        validGuesses.append(nextGuessNode)
+                        guessNode.setNextGuesses(pattern, validGuesses)
+                        break
             
             if len(validGuesses) == 0 and not hardMode:
                 # Loop over each word remaining from given comparison pattern and check if it always results in a solved puzzle
@@ -218,6 +221,7 @@ def canSolve(guess: str,
                     success, nextGuessNode = canSolve(guess=nextGuess,
                                                     remaining=words,
                                                     hardMode=False,
+                                                    already_attempted_hard_mode=not already_attempted_hard_mode,
                                                     guesses=guesses,
                                                     allWords=allWords)
                     guesses.remove(nextGuess)
