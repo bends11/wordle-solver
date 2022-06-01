@@ -7,25 +7,25 @@ def main(argv):
     if len(argv) < 1:
         solve()
     else:
-        solveWithAnswer(argv[0])
+        solve_with_answer(argv[0])
 
-def buildGuessNodes():
-    guessNodes = []
+def build_guess_nodes():
+    guess_nodes = []
     with open('solution.json') as file:
-        jsonList = json.loads(file.read())
-        for node in jsonList:
-            guessNodes.append(GuessNode(node, True))
+        json_list = json.loads(file.read())
+        for node in json_list:
+            guess_nodes.append(GuessNode(node, True))
     
-    return guessNodes
+    return guess_nodes
 
-def solveWithAnswer(answer):
-    guessNode = buildGuessNodes()[0]
-    guess = guessNode.guess
+def solve_with_answer(answer):
+    guess_node = build_guess_nodes()[0]
+    guess = guess_node.guess
     guesses = [guess]
     while guess != answer and len(guesses) < 6:
         comparison = compare(answer, guess)
-        guessNode = guessNode.nextGuesses[comparison][0]
-        guess = guessNode.guess
+        guess_node = guess_node.next_guesses[comparison][0]
+        guess = guess_node.guess
         guesses.append(guess)
     
     if guess == answer:
@@ -35,14 +35,14 @@ def solveWithAnswer(answer):
         print('Failed to solve \'' + answer + '\'')
 
 def solve():
-    guessNode = buildGuessNodes()[0]
-    guess = guessNode.guess
+    guess_node = build_guess_nodes()[0]
+    guess = guess_node.guess
     guesses = [guess]
     print('Enter "' + guess + '" as your next guess')
     comparison = input('Enter the colors returned from your guess (Green: "g", Yellow: "y", Blank: "b"):')
     while comparison != 'ggggg' and len(guesses) < 6:
-        guessNode = guessNode.nextGuesses[comparison][0]
-        guess = guessNode.guess
+        guess_node = guess_node.next_guesses[comparison][0]
+        guess = guess_node.guess
         guesses.append(guess)
         print('Enter "' + guess + '" as your next guess')
         comparison = input('Enter the colors returned from your guess (Green: "g", Yellow: "y", Blank: "b"):')
